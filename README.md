@@ -55,14 +55,12 @@ Python notebook: `data-analysis.ipynb`
 # AI Assistance
 gpt-4o was used a few times for support in this project.
 
-Hashing file contents for easy content comparison
-
+## Hashing file contents for easy content comparison
 Prompt 1: I have a dataset at a source website that I am syncing with an S3 bucket. I am adding and replacing changed files, or deleting files that are no longer in the source dataset to keep my S3 bucket in sync with this website. What is the best way to check if one of the files have changed and need to be replaced? I want this check so I can avoid replacing a file that hasn't changed
 
 Answer 1: TL;DR Use MD5 comparison, but store your own MD5 in S3 metadata to avoid double downloads.
 
-Static website hosting
-
+## Static website hosting
 Prompt 2: I want to create a public URL to show what is in my S3 bucket.
 
 Answer 2: TL;DR 1. Allow public access at the bucket level 
