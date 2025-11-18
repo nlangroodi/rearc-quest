@@ -4,13 +4,13 @@ Complete the Rearc Data Quest as defined in https://github.com/rearc-data/quest.
 # Walkthrough
 ## Part 1: AWS S3 & Sourcing Datasets
 Bucket URL: `http://rearc-quest-bls.s3-website.us-east-2.amazonaws.com` 
-Python script: `scripts/aws-sync.py`
+Python script: `scripts/aws_sync.py`
 
 Ensure your environment is set up with the AWS CLI. 
 Install the CLI and run through the `aws configure` command.
 Install requirements.txt.
 
-The `aws-sync.py` script will:
+The `aws_sync.py` script will:
 - Take inventory of the files in the S3 bucket. 
 - Grab the files currently uploaded to the source website, `https://download.bls.gov/pub/time.series/pr/`. This is done through the `get_remote_files()` function. The User-Agent flag must be passed in through the headers of the request to the source website to gain access to fetching the data.
 - Loop through the source files and determine if they should be added or replaced from the S3 bucket. This is accomplished by first checking if the file is in the S3 bucket, and the variable `upload_type` will keep track on if it is a new upload or a potential file replacement. Then, the `upload_file()` function will determine if there are any changes in the file. This is accomplished by comparing the hashed contents of the files. If there are changes to the file, the function will replace the file in the S3 bucket, else it will move skip the file upload.
@@ -36,7 +36,7 @@ Bucket Policy:
 ```
 
 ## Part 2: APIs
-Python script: `scripts/datausa-api-fetch.py`
+Python script: `scripts/datausa_api_fetch.py`
 S3 Link: `http://rearc-quest-bls.s3-website.us-east-2.amazonaws.com/datausa-results.json`
 
 - Ping the desired API endpoint.
@@ -52,8 +52,48 @@ Python notebook: `data-analysis.ipynb`
 - Load the variable into a pandas dataframe through `pd.read_json()` by streaming the variable using StringIO.
 - Walk through the analyses requested in the Quest docs.
 
+## Part 4: Infrastructure as Code & Data Pipeline with Terraform
+Pertinent files in `terraform/`
+* `main.tf` - main file for Terraform to compile and create the data pipeline.
+* `variables.tf` - variables used in main file.
+* `outputs.tf` - expected output values Terraform will use for resource creation.
+* `sqs_processor.zip` - file used for `sqs-processor-lambda` function
+   * Zips `scripts/sqs_processor.py` with `requirements.txt` installed in a folder called `lambda/`
+* `aws_sync_datausa.zip` - file used for `data-pipeline-lambda` function
+   * Zips `scripts/aws_sync_datausa.py`, `aws_sync.py`, `datausa_api_fetch.py` with `requirements.txt` installed in a folder called `lambda/`
+
+Ensure Terraform is installed in your environment. You can install Terraform by running the following commands. Follow the steps below to create the data pipeline.
+
+```
+brew tap hashicorp/tap
+brew install hashicorp/tap/terraform
+```
+
+Navigate to the `terraform/` folder and run the following commands to test the data pipeline.
+
+```
+terraform init
+terraform plan
+terraform apply
+```
+
+A few resources have been generated:
+* An S3 bucket called `data-pipeline-bucket-rearc-quest-nml`
+* An SQS queue called `data-pipeline-queue`
+* A lambda function called `sqs-processor-lambda`
+* A lambda function called `data-pipeline-lambda`
+
+If a file is uploaded to the S3 bucket, a message will enter the queue and be sent to the `sqs-processor-lambda` function. This function will then call on the `data-pipeline-lambda` function and run the refresh for Parts 1 and 2.
+
+# Future Enhancements
+Pipeline improvements: 
+    * Separate Parts 1 and 2
+        * Schedule a function for Part 2 to be run daily and drop the JSON file in the `data-pipeline-bucket-rearc-quest-nml` bucket.
+        * Bucket will trigger an SQS message to run the `data-pipeline-lambda` function. This function will call `aws_sync.py`
+        * Analysis will grab latest JSON file from `data-pipeline-bucket-rearc-quest-nml` bucket
+
 # AI Assistance
-gpt-4o was used a few times for support in this project.
+GPT-4o was used in Copilot a few times for support in this project.
 
 ## Hashing file contents for easy content comparison
 Prompt 1: I have a dataset at a source website that I am syncing with an S3 bucket. I am adding and replacing changed files, or deleting files that are no longer in the source dataset to keep my S3 bucket in sync with this website. What is the best way to check if one of the files have changed and need to be replaced? I want this check so I can avoid replacing a file that hasn't changed
@@ -67,4 +107,31 @@ Answer 2: TL;DR 1. Allow public access at the bucket level
 2. Add a public-read bucket policy
 3. Make the entire bucket browsable as a website (list all files in browser)
 
-Terraform
+## Terraform
+Prompt 3: Using Terraform, create a data pipeline that will automate the steps aws-sync.py and datausa-api-fetch.py. The deployment should include a Lambda function that executes aws-sync.py and datausa-api-fetch.py (you can combine both in 1 lambda function). The lambda function will be scheduled to run daily. The deployment should include an SQS queue that will be populated every time the JSON file is written to S3. (Hint: S3 - Notifications) For every message on the queue - execute a Lambda function that outputs the reports from Part 3 (just logging the results of the queries would be enough. No .ipynb is required).
+
+Answer 3: Here’s a Terraform configuration to deploy the described data pipeline. The solution includes:
+
+Lambda Function: Combines aws-sync.py and datausa-api-fetch.py into one Lambda function.
+S3 Bucket: Stores the JSON files.
+S3 Notifications: Triggers an SQS queue when a new JSON file is written to the bucket.
+SQS Queue: Stores messages for new files.
+Second Lambda Function: Processes messages from the SQS queue and logs the results.
+CloudWatch Event Rule: Schedules the first Lambda function to run daily.
+Steps to Deploy
+Prepare Lambda Code:
+
+Combine aws-sync.py and datausa-api-fetch.py into one script.
+Package the script into a .zip file (e.g., aws_sync_datausa.zip).
+Create another Lambda script for processing SQS messages and package it into sqs_processor.zip.
+Deploy Terraform:
+
+Initialize Terraform: terraform init
+Plan the deployment: terraform plan
+Apply the deployment: terraform apply
+Verify:
+
+Ensure the S3 bucket, Lambda functions, SQS queue, and CloudWatch event rule are created.
+Test the pipeline by uploading a file to the S3 bucket.
+
+TL;DR Assisted in creating all terraform files and folder structure.

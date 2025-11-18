@@ -10,6 +10,7 @@ source_headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15'
           }
 bucket_name = "rearc-quest-bls"
+s3 = boto3.client("s3")
 
 def get_remote_files(source_url, source_headers):
     response = requests.get(source_url, headers=source_headers)
@@ -61,9 +62,8 @@ def update_index_file(bucket_name, file_list):
         ContentType= "text/html"
     )
 
-if __name__ == "__main__":
+def main():
     # get files in s3 storage bucket
-    s3 = boto3.client("s3")
     s3_objects = s3.list_objects_v2(Bucket=bucket_name).get("Contents", [])
     s3_files = [obj["Key"] for obj in s3_objects]
 
@@ -91,3 +91,6 @@ if __name__ == "__main__":
     # update index file for static website hosting
     if change_index:
         update_index_file(bucket_name, source_files)
+
+if __name__ == "__main__":
+    main()

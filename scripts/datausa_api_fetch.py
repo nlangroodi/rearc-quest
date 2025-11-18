@@ -4,8 +4,7 @@ import json
 
 bucket_name = "rearc-quest-bls"
 
-if __name__ == "__main__":
-
+def fetch_data():
     response = requests.get(f"https://honolulu-api.datausa.io/tesseract/data.jsonrecords?cube=acs_yg_total_population_1&drilldowns=Year%2CNation&locale=en&measures=Population")
     s3 = boto3.client("s3")
     
@@ -20,3 +19,6 @@ if __name__ == "__main__":
     else:
         print(f'Unsuccessful API call, returned with status {response.status_code}')
         raise
+
+if __name__ == "__main__":
+    fetch_data()
