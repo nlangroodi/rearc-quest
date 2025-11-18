@@ -87,10 +87,10 @@ If a file is uploaded to the S3 bucket, a message will enter the queue and be se
 
 # Future Enhancements
 Pipeline improvements: 
-    * Separate Parts 1 and 2
-        * Schedule a function for Part 2 to be run daily and drop the JSON file in the `data-pipeline-bucket-rearc-quest-nml` bucket.
-        * Bucket will trigger an SQS message to run the `data-pipeline-lambda` function. This function will call `aws_sync.py`
-        * Analysis will grab latest JSON file from `data-pipeline-bucket-rearc-quest-nml` bucket
+* Separate Parts 1 and 2
+    * Schedule a function for Part 2 to be run daily and drop the JSON file in the `data-pipeline-bucket-rearc-quest-nml` bucket.
+    * Bucket will trigger an SQS message to run the `data-pipeline-lambda` function. This function will call `aws_sync.py`
+    * Analysis will grab latest JSON file from `data-pipeline-bucket-rearc-quest-nml` bucket
 
 # AI Assistance
 GPT-4o was used in Copilot a few times for support in this project.
